@@ -402,6 +402,38 @@
   }
 }
 
+/* 휴대폰 폭: 채팅 패널이 화면 높이를 채워 입력창이 화면 아래에 붙고, 메시지가 가로로 넘치지 않게 함 */
+@media (max-width: 767.98px) {
+  .chat-panel {
+    height: calc(100vh - var(--wallo-page-top-offset) - var(--wallo-page-gutter));
+    height: calc(100dvh - var(--wallo-page-top-offset) - var(--wallo-page-gutter));
+    min-height: 420px;
+  }
+
+  .message-list {
+    overflow-x: hidden;
+  }
+
+  .message-list :deep(.message-content) {
+    overflow-wrap: anywhere;
+  }
+
+  .message-list :deep(.message-content table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .loading-message--progress {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .chat-panel :deep(.message-form textarea) {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 576px) {
   .chat-panel-header {
     padding-right: var(--wallo-space-4);
