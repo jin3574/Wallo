@@ -1,9 +1,11 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { storeToRefs } from "pinia"
 import { RouterLink, useRoute, useRouter } from "vue-router"
 import { getCurrentChallenge } from "@/api/challengeApi"
 import AppDialog from "@/components/common/AppDialog.vue"
 import AppButton from "@/components/ui/AppButton.vue"
+import { useNavigationStore } from "@/stores/navigationStore"
 import { useUserStore } from "@/stores/userStore"
 import { getAppToday } from "@/utils/appDate"
 
@@ -82,6 +84,55 @@ onBeforeUnmount(() => window.clearTimeout(dailyTipTimer))
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const navigationStore = useNavigationStore()
+const { isMobileMenuOpen } = storeToRefs(navigationStore)
+const sidebarElement = ref(null)
+let desktopMediaQuery = null
+
+// 모바일 메뉴 안의 링크를 누르면 메뉴를 닫음 (하위 메뉴 펼침 버튼은 제외)
+const handleSidebarClick = (event) => {
+  if (event.target.closest?.("a")) {
+    navigationStore.closeMobileMenu()
+  }
+}
+
+const handleDocumentKeydown = (event) => {
+  if (event.key !== "Escape" || !isMobileMenuOpen.value) return
+  navigationStore.closeMobileMenu()
+  document.getElementById("mobile-navigation-toggle")?.focus()
+}
+
+// PC 폭으로 넓어지면 열린 모바일 메뉴 상태가 남지 않도록 닫음
+const handleDesktopMediaChange = (event) => {
+  if (event.matches) navigationStore.closeMobileMenu()
+}
+
+watch(
+  () => route.path,
+  () => navigationStore.closeMobileMenu(),
+)
+
+// 모바일 메뉴가 열려 있는 동안 본문 스크롤을 막고 메뉴로 포커스를 옮김
+watch(isMobileMenuOpen, async (isOpen) => {
+  document.body.style.overflow = isOpen ? "hidden" : ""
+  if (isOpen) {
+    await nextTick()
+    sidebarElement.value?.querySelector("a, button")?.focus()
+  }
+})
+
+onMounted(() => {
+  document.addEventListener("keydown", handleDocumentKeydown)
+  desktopMediaQuery = window.matchMedia?.("(min-width: 992px)") ?? null
+  desktopMediaQuery?.addEventListener?.("change", handleDesktopMediaChange)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", handleDocumentKeydown)
+  desktopMediaQuery?.removeEventListener?.("change", handleDesktopMediaChange)
+  navigationStore.closeMobileMenu()
+  document.body.style.overflow = ""
+})
 // 자산관리 하위 메뉴 열림 여부를 관리함
 const isAssetOpen = ref(false)
 // AI 컨설팅 하위 메뉴 열림 여부를 관리함
@@ -266,7 +317,22 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <aside class="sidebar d-flex flex-column" aria-label="주요 메뉴">
+  <Transition name="sidebar-backdrop">
+    <div
+      v-if="isMobileMenuOpen"
+      class="sidebar-backdrop offcanvas-backdrop fade show d-lg-none"
+      aria-hidden="true"
+      @click="navigationStore.closeMobileMenu"
+    ></div>
+  </Transition>
+  <aside
+    id="app-side-navigation"
+    ref="sidebarElement"
+    class="sidebar d-flex flex-column"
+    :class="{ 'sidebar--open': isMobileMenuOpen }"
+    aria-label="주요 메뉴"
+    @click="handleSidebarClick"
+  >
     <RouterLink
       to="/dashboard"
       class="brand d-flex align-items-center"
@@ -856,10 +922,38 @@ const handleLogout = async () => {
   line-height: 1.5;
 }
 
-@media (max-width: 767.98px) {
+.sidebar-backdrop-enter-active,
+.sidebar-backdrop-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-backdrop-enter-from,
+.sidebar-backdrop-leave-to {
+  opacity: 0;
+}
+
+/* 태블릿·휴대폰에서는 사이드 메뉴를 숨기고 햄버거 버튼으로 왼쪽에서 겹쳐 열리게 함 */
+@media (max-width: 991.98px) {
   .sidebar {
-    flex-basis: var(--wallo-sidebar-width);
-    width: var(--wallo-sidebar-width);
+    z-index: 1045;
+    height: auto;
+    box-shadow: 0 16px 36px rgb(40 72 112 / 18%);
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition:
+      transform 0.3s ease-in-out,
+      visibility 0.3s ease-in-out;
+  }
+
+  .sidebar--open {
+    visibility: visible;
+    transform: none;
+  }
+}
+
+@media (max-width: 991.98px) and (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
   }
 }
 </style>

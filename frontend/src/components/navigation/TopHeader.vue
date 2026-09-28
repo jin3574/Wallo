@@ -8,6 +8,7 @@ import {
   MISSION_RATE_LIMIT_MESSAGE,
   useMissionStore,
 } from "@/stores/missionStore"
+import { useNavigationStore } from "@/stores/navigationStore"
 import { useUserStore } from "@/stores/userStore"
 import { useToastStore } from "@/stores/toastStore"
 import { formatNumber } from "@/utils/formatters"
@@ -18,8 +19,10 @@ const pointWCoin = "/images/profiles/point-w-coin.svg"
 const userStore = useUserStore()
 const toastStore = useToastStore()
 const missionStore = useMissionStore()
+const navigationStore = useNavigationStore()
 const router = useRouter()
 const { nickname, profileImageUrl, pointBalance, isLoading } = storeToRefs(userStore)
+const { isMobileMenuOpen } = storeToRefs(navigationStore)
 const {
   missions,
   status: missionStatus,
@@ -131,105 +134,120 @@ const handleMissionFocusOut = (event) => {
 <template>
   <header class="top-header d-flex flex-shrink-0 align-items-center justify-content-center">
     <div class="top-header-content">
-      <div
-        ref="missionMenu"
-        class="mission-menu"
-        @mouseenter="openMissionMenu"
-        @mouseleave="scheduleMissionMenuClose"
-        @focusin="openMissionMenu"
-        @focusout="handleMissionFocusOut"
-      >
-        <AppButton
-          class="mission-trigger"
-          variant="ghost"
-          size="sm"
-          :aria-expanded="isMissionOpen"
-          aria-controls="today-mission-popover"
-          @click="toggleMissionMenu"
+      <div class="top-header-start d-flex align-items-center">
+        <!-- 991.98px 이하에서만 보이는 사이드 메뉴 열기 버튼 -->
+        <button
+          id="mobile-navigation-toggle"
+          type="button"
+          class="mobile-navigation-toggle d-lg-none pressable"
+          :aria-label="isMobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'"
+          :aria-expanded="isMobileMenuOpen"
+          aria-controls="app-side-navigation"
+          @click="navigationStore.toggleMobileMenu"
         >
-          <template #leading><span class="mission-check" aria-hidden="true">✓</span></template>
-          <span class="mission-label">오늘의 미션</span>
-          <strong v-if="missions.length">{{ completedMissionCount }}/{{ missions.length }}</strong>
-          <i class="mission-chevron bi bi-chevron-down" aria-hidden="true"></i>
-        </AppButton>
+          <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
 
-        <div v-if="isMissionOpen" id="today-mission-popover" class="mission-popover">
-          <div class="mission-popover-heading">
-            <strong>오늘의 미션</strong>
-            <span v-if="missions.length"
-              >{{ completedMissionReward }} / {{ totalMissionReward }}P</span
-            >
-          </div>
+        <div
+          ref="missionMenu"
+          class="mission-menu"
+          @mouseenter="openMissionMenu"
+          @mouseleave="scheduleMissionMenuClose"
+          @focusin="openMissionMenu"
+          @focusout="handleMissionFocusOut"
+        >
+          <AppButton
+            class="mission-trigger"
+            variant="ghost"
+            size="sm"
+            :aria-expanded="isMissionOpen"
+            aria-controls="today-mission-popover"
+            @click="toggleMissionMenu"
+          >
+            <template #leading><span class="mission-check" aria-hidden="true">✓</span></template>
+            <span class="mission-label">오늘의 미션</span>
+            <strong v-if="missions.length">{{ completedMissionCount }}/{{ missions.length }}</strong>
+            <i class="mission-chevron bi bi-chevron-down" aria-hidden="true"></i>
+          </AppButton>
 
-          <div v-if="isMissionLoading && !missions.length" class="mission-loading">
-            미션을 불러오는 중...
-          </div>
-          <div v-else-if="missionStatus === 'WAITING_ANALYSIS'" class="mission-empty">
-            소비 분석이 완료되면 오늘의 미션이 생성됩니다.
-            <AppButton
-              class="mt-3"
-              variant="outline"
-              size="sm"
-              block
-              :disabled="isMissionPolling"
-              @click="startConsumptionAnalysis"
-            >
-              <i class="bi bi-bar-chart-line me-1" aria-hidden="true"></i>
-              {{ isMissionPolling ? "오늘의 미션을 생성하는 중..." : "소비분석 하러가기" }}
-            </AppButton>
-          </div>
-          <div v-else-if="missionStatus === MISSION_GENERATION_FAILED_STATUS" class="mission-empty">
-            {{ missionFailureReason === "RATE_LIMIT"
-              ? MISSION_RATE_LIMIT_MESSAGE
-              : "오늘의 미션을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요." }}
-          </div>
-          <div v-else-if="!missions.length" class="mission-empty">오늘 배정된 미션이 없습니다.</div>
-          <div v-else class="mission-list">
-            <div
-              v-for="mission in missions"
-              :key="mission.id"
-              class="mission-item"
-              :class="{ completed: mission.completed }"
-            >
-              <span class="mission-item-icon" aria-hidden="true">{{ mission.icon }}</span>
-              <span class="mission-item-content">
-                <strong>{{ mission.title }}</strong>
-                <span class="mission-item-description">{{ mission.description }}</span>
-                <span class="mission-item-meta">
-                  <b>● +{{ mission.rewardPoint }}P</b>
-                </span>
-              </span>
-              <span class="mission-item-status" :aria-label="mission.completed ? '완료' : '미완료'">
-                <i
-                  :class="mission.completed ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
-                  aria-hidden="true"
-                ></i>
-              </span>
+          <div v-if="isMissionOpen" id="today-mission-popover" class="mission-popover">
+            <div class="mission-popover-heading">
+              <strong>오늘의 미션</strong>
+              <span v-if="missions.length"
+                >{{ completedMissionReward }} / {{ totalMissionReward }}P</span
+              >
             </div>
-          </div>
 
-          <div v-if="isDevelopment" class="mission-dev-panel">
-            <div class="mission-dev-heading">
-              <strong>개발자 검증</strong>
-              <span>현재 로그인 사용자</span>
+            <div v-if="isMissionLoading && !missions.length" class="mission-loading">
+              미션을 불러오는 중...
             </div>
-            <div>
+            <div v-else-if="missionStatus === 'WAITING_ANALYSIS'" class="mission-empty">
+              소비 분석이 완료되면 오늘의 미션이 생성됩니다.
               <AppButton
-                variant="primary"
+                class="mt-3"
+                variant="outline"
                 size="sm"
                 block
-                :disabled="isMissionDevLoading"
-                @click="generateNextDay"
+                :disabled="isMissionPolling"
+                @click="startConsumptionAnalysis"
               >
-                다음날 미션 생성
+                <i class="bi bi-bar-chart-line me-1" aria-hidden="true"></i>
+                {{ isMissionPolling ? "오늘의 미션을 생성하는 중..." : "소비분석 하러가기" }}
               </AppButton>
             </div>
-            <div v-if="isMissionDevLoading" class="mission-dev-result">처리 중...</div>
-            <div v-else-if="missionDevResult" class="mission-dev-result">
-              {{ missionDevResult.mode }} 결과: {{ missionDevResult.count }}개
-              <ul v-if="missionDevResult.titles.length" class="mb-0 ps-3">
-                <li v-for="title in missionDevResult.titles" :key="title">{{ title }}</li>
-              </ul>
+            <div v-else-if="missionStatus === MISSION_GENERATION_FAILED_STATUS" class="mission-empty">
+              {{ missionFailureReason === "RATE_LIMIT"
+                ? MISSION_RATE_LIMIT_MESSAGE
+                : "오늘의 미션을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요." }}
+            </div>
+            <div v-else-if="!missions.length" class="mission-empty">오늘 배정된 미션이 없습니다.</div>
+            <div v-else class="mission-list">
+              <div
+                v-for="mission in missions"
+                :key="mission.id"
+                class="mission-item"
+                :class="{ completed: mission.completed }"
+              >
+                <span class="mission-item-icon" aria-hidden="true">{{ mission.icon }}</span>
+                <span class="mission-item-content">
+                  <strong>{{ mission.title }}</strong>
+                  <span class="mission-item-description">{{ mission.description }}</span>
+                  <span class="mission-item-meta">
+                    <b>● +{{ mission.rewardPoint }}P</b>
+                  </span>
+                </span>
+                <span class="mission-item-status" :aria-label="mission.completed ? '완료' : '미완료'">
+                  <i
+                    :class="mission.completed ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
+                    aria-hidden="true"
+                  ></i>
+                </span>
+              </div>
+            </div>
+
+            <div v-if="isDevelopment" class="mission-dev-panel">
+              <div class="mission-dev-heading">
+                <strong>개발자 검증</strong>
+                <span>현재 로그인 사용자</span>
+              </div>
+              <div>
+                <AppButton
+                  variant="primary"
+                  size="sm"
+                  block
+                  :disabled="isMissionDevLoading"
+                  @click="generateNextDay"
+                >
+                  다음날 미션 생성
+                </AppButton>
+              </div>
+              <div v-if="isMissionDevLoading" class="mission-dev-result">처리 중...</div>
+              <div v-else-if="missionDevResult" class="mission-dev-result">
+                {{ missionDevResult.mode }} 결과: {{ missionDevResult.count }}개
+                <ul v-if="missionDevResult.titles.length" class="mb-0 ps-3">
+                  <li v-for="title in missionDevResult.titles" :key="title">{{ title }}</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -585,9 +603,56 @@ const handleMissionFocusOut = (event) => {
   background: #4f8fe8;
 }
 
+.top-header-start {
+  gap: 8px;
+  min-width: 0;
+}
+
+.mobile-navigation-toggle {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #d9e5f5;
+  border-radius: 12px;
+  background: #fff;
+  color: #27304f;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mobile-navigation-toggle:hover,
+.mobile-navigation-toggle:focus-visible {
+  border-color: #4f8fe8;
+  color: #4f8fe8;
+}
+
+.mobile-navigation-toggle:focus-visible {
+  outline: 0;
+  box-shadow: var(--wallo-focus-ring);
+}
+
 @media (max-width: 991.98px) {
+  /* 사이드 메뉴가 오버레이로 바뀌므로 헤더가 전체 폭을 사용함 */
+  .top-header {
+    left: 0;
+  }
+
   .mission-menu {
     margin-left: 0;
+  }
+
+  /* 미션 트리거가 헤더 왼쪽에 있으므로 팝오버를 왼쪽 기준으로 펼침 */
+  .mission-popover {
+    right: auto;
+    left: 0;
+  }
+
+  .mission-popover::before {
+    right: auto;
+    left: 32px;
   }
 }
 
@@ -614,14 +679,28 @@ const handleMissionFocusOut = (event) => {
     display: none;
   }
 
+  /* 휴대폰 폭에서는 화면 양쪽 여백에 맞춰 팝오버를 고정함 */
   .mission-popover {
-    right: -70px;
-    width: min(330px, calc(100vw - 28px));
+    position: fixed;
+    top: calc(var(--wallo-header-height) - 6px);
+    right: 14px;
+    left: 14px;
+    width: auto;
+  }
+
+  .mission-popover::before {
+    display: none;
   }
 
   .user-name {
     max-width: 110px;
     font-size: 16px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .user-name {
+    display: none;
   }
 }
 </style>
