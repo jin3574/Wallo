@@ -1,9 +1,11 @@
 import { flushPromises, mount } from "@vue/test-utils"
+import { createPinia, setActivePinia } from "pinia"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { nextTick, reactive } from "vue"
 
 import SideNavigation from "./SideNavigation.vue"
 import { getCurrentChallenge } from "@/api/challengeApi"
+import { useNavigationStore } from "@/stores/navigationStore"
 
 const mocks = vi.hoisted(() => ({
   route: {
@@ -39,6 +41,7 @@ vi.mock("@/api/challengeApi", () => ({
 
 describe("SideNavigation", () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     mocks.route = reactive({
       path: "/my-feeds",
       name: "my-feeds",
@@ -319,5 +322,98 @@ describe("SideNavigation", () => {
     expect(wrapper.find("#challenge-submenu").exists()).toBe(false)
 
     wrapper.unmount()
+  })
+
+  describe("mobile overlay menu", () => {
+    const mountSideNavigation = () =>
+      mount(SideNavigation, {
+        attachTo: document.body,
+        global: {
+          stubs: {
+            AppDialog: { template: "<div />" },
+          },
+        },
+      })
+
+    it("is closed by default without a backdrop", () => {
+      const wrapper = mountSideNavigation()
+
+      expect(wrapper.find("#app-side-navigation").classes()).not.toContain("sidebar--open")
+      expect(wrapper.find(".sidebar-backdrop").exists()).toBe(false)
+      expect(document.body.style.overflow).toBe("")
+
+      wrapper.unmount()
+    })
+
+    it("opens with a backdrop, locks body scroll and closes on backdrop click", async () => {
+      const wrapper = mountSideNavigation()
+      const navigationStore = useNavigationStore()
+
+      navigationStore.openMobileMenu()
+      await nextTick()
+
+      expect(wrapper.find("#app-side-navigation").classes()).toContain("sidebar--open")
+      expect(wrapper.find(".sidebar-backdrop").exists()).toBe(true)
+      expect(document.body.style.overflow).toBe("hidden")
+
+      await wrapper.find(".sidebar-backdrop").trigger("click")
+
+      expect(navigationStore.isMobileMenuOpen).toBe(false)
+      expect(wrapper.find("#app-side-navigation").classes()).not.toContain("sidebar--open")
+      expect(document.body.style.overflow).toBe("")
+
+      wrapper.unmount()
+    })
+
+    it("closes when the route changes", async () => {
+      mocks.route.path = "/dashboard"
+      const wrapper = mountSideNavigation()
+      const navigationStore = useNavigationStore()
+
+      navigationStore.openMobileMenu()
+      await nextTick()
+
+      mocks.route.path = "/assets"
+      await nextTick()
+
+      expect(navigationStore.isMobileMenuOpen).toBe(false)
+
+      wrapper.unmount()
+    })
+
+    it("closes when a menu link is clicked but not when a submenu toggle is clicked", async () => {
+      mocks.route.path = "/dashboard"
+      const wrapper = mountSideNavigation()
+      const navigationStore = useNavigationStore()
+
+      navigationStore.openMobileMenu()
+      await nextTick()
+
+      await wrapper.find(".asset-collapse-toggle").trigger("click")
+      expect(navigationStore.isMobileMenuOpen).toBe(true)
+
+      // jsdom이 실제 페이지 이동을 시도하지 않도록 기본 동작만 막음
+      const pointShopLink = wrapper.find('a[href="/point-shop"]')
+      pointShopLink.element.addEventListener("click", (event) => event.preventDefault())
+      await pointShopLink.trigger("click")
+      expect(navigationStore.isMobileMenuOpen).toBe(false)
+
+      wrapper.unmount()
+    })
+
+    it("closes when Escape is pressed", async () => {
+      const wrapper = mountSideNavigation()
+      const navigationStore = useNavigationStore()
+
+      navigationStore.openMobileMenu()
+      await nextTick()
+
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
+      await nextTick()
+
+      expect(navigationStore.isMobileMenuOpen).toBe(false)
+
+      wrapper.unmount()
+    })
   })
 })
