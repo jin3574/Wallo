@@ -1554,6 +1554,11 @@ onMounted(() => {
     height: 68px;
   }
 
+  /* 좁은 폭에서는 본문이 여러 줄로 감싸지므로 라벨을 흐름에 두어 겹치지 않게 함 */
+  .goal-coaching-label {
+    position: static;
+  }
+
   .goal-card-heading {
     flex-direction: column;
   }
