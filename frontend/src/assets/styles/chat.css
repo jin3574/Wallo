@@ -432,6 +432,19 @@
   .chat-panel :deep(.message-form textarea) {
     min-width: 0;
   }
+
+  /* 한 줄 높이 입력창에 안내 문구가 줄바꿈 없이 다 들어가도록 문구만 줄이고 전송 버튼 폭을 좁힘
+     (입력 글자는 16px 유지: iOS에서 입력 시 화면 확대 방지) */
+  .chat-panel :deep(.message-form textarea::placeholder) {
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .chat-panel :deep(.message-send-button) {
+    min-width: 64px;
+    padding-right: var(--wallo-space-3);
+    padding-left: var(--wallo-space-3);
+  }
 }
 
 @media (max-width: 576px) {
