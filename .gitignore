@@ -13,3 +13,6 @@ dist/
 # Local backend database and external API settings
 backend/src/main/resources/application.properties
 database/mysql/dbInit.sql
+
+# Claude Code preview settings
+.claude/launch.json

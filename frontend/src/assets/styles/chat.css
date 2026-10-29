@@ -402,6 +402,51 @@
   }
 }
 
+/* 휴대폰 폭: 채팅 패널이 화면 높이를 채워 입력창이 화면 아래에 붙고, 메시지가 가로로 넘치지 않게 함 */
+@media (max-width: 767.98px) {
+  .chat-panel {
+    height: calc(100vh - var(--wallo-page-top-offset) - var(--wallo-page-gutter));
+    height: calc(100dvh - var(--wallo-page-top-offset) - var(--wallo-page-gutter));
+    min-height: 420px;
+  }
+
+  .message-list {
+    overflow-x: hidden;
+  }
+
+  .message-list :deep(.message-content) {
+    overflow-wrap: anywhere;
+  }
+
+  .message-list :deep(.message-content table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .loading-message--progress {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .chat-panel :deep(.message-form textarea) {
+    min-width: 0;
+  }
+
+  /* 한 줄 높이 입력창에 안내 문구가 줄바꿈 없이 다 들어가도록 문구만 줄이고 전송 버튼 폭을 좁힘
+     (입력 글자는 16px 유지: iOS에서 입력 시 화면 확대 방지) */
+  .chat-panel :deep(.message-form textarea::placeholder) {
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .chat-panel :deep(.message-send-button) {
+    min-width: 64px;
+    padding-right: var(--wallo-space-3);
+    padding-left: var(--wallo-space-3);
+  }
+}
+
 @media (max-width: 576px) {
   .chat-panel-header {
     padding-right: var(--wallo-space-4);

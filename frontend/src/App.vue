@@ -90,6 +90,14 @@ onBeforeUnmount(() => {
   max-width: var(--wallo-content-max-width);
 }
 
+/* 991.98px 이하에서는 사이드 메뉴가 오버레이로 열리므로 본문이 전체 폭을 사용함 */
+@media (max-width: 991.98px) {
+  .app-shell-body {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 767.98px) {
   .page-content {
     padding-right: var(--wallo-page-gutter-mobile);

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import TopHeader from "./TopHeader.vue"
 import { getTodayMissions } from "@/api/missionApi"
 import { useMissionStore } from "@/stores/missionStore"
+import { useNavigationStore } from "@/stores/navigationStore"
 import { useUserStore } from "@/stores/userStore"
 import { useToastStore } from "@/stores/toastStore"
 
@@ -108,6 +109,30 @@ describe("TopHeader", () => {
       "AI 사용량 제한으로 잠시 후 다시 생성됩니다.",
     )
     expect(globalThis.alert).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it("toggles the mobile side menu with an accessible hamburger button", async () => {
+    const wrapper = mountTopHeader()
+    await flushPromises()
+
+    const toggle = wrapper.find("#mobile-navigation-toggle")
+    expect(toggle.classes()).toContain("d-lg-none")
+    expect(toggle.attributes("aria-controls")).toBe("app-side-navigation")
+    expect(toggle.attributes("aria-expanded")).toBe("false")
+    expect(toggle.attributes("aria-label")).toBe("메뉴 열기")
+
+    await toggle.trigger("click")
+
+    expect(useNavigationStore().isMobileMenuOpen).toBe(true)
+    expect(toggle.attributes("aria-expanded")).toBe("true")
+    expect(toggle.attributes("aria-label")).toBe("메뉴 닫기")
+
+    await toggle.trigger("click")
+
+    expect(useNavigationStore().isMobileMenuOpen).toBe(false)
+    expect(toggle.attributes("aria-expanded")).toBe("false")
 
     wrapper.unmount()
   })
