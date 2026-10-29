@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallo-ai
+  labels:
+    app: wallo-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wallo-ai
+  template:
+    metadata:
+      labels:
+        app: wallo-ai
+    spec:
+      containers:
+        - name: wallo-ai
+          image: wallo-ai:0.1
+          # minikube image load로 넣은 로컬 이미지를 사용 (레지스트리에서 받지 않음)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          # GROQ_API_KEY 등은 커밋하지 않고 아래 명령으로 만든 Secret에서 주입
+          # kubectl create secret generic wallo-ai-secret --from-env-file=.env
+          envFrom:
+            - secretRef:
+                name: wallo-ai-secret
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

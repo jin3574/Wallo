@@ -1,0 +1,6 @@
+# Docker 이미지(서버 실행) 전용 의존성
+# 크롤러·변환기·테스트용 패키지는 requirements.txt에만 둡니다.
+fastapi
+groq
+python-dotenv
+uvicorn[standard]
